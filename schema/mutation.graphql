@@ -3,7 +3,7 @@ type Mutation {
 
     addProduct(addProductInput: AddProductInput!): Product!
 
-    addCartItem(addCartItemInput: AddCartItemInout!): Cart!
+    addCartItem(addCartItemInput: AddCartItemInput!): Cart!
 
     deleteCartItem(deleteCartItemInput: DeleteCartItemInput!): Cart!
 }

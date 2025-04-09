@@ -27,7 +27,7 @@ enum ProductType {
 }
 
 input AddProductInput {
-    name: Stirng!
+    name: String!
     price: Float!
     productType: ProductType!
     warrantyPeriod: String

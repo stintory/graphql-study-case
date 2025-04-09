@@ -2,9 +2,12 @@
   "name": "graphql-study-case",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./src/app.js",
+    "dev": "nodemon --watch \"./src/**/*.js\" --exec \"npm start\""
   },
   "author": "stintory",
   "license": "ISC",
@@ -17,7 +20,9 @@
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
     "graphql-subscriptions": "^3.0.0",
-    "graphql-ws": "^6.0.4",
+    "graphql-ws": "^5.11.0",
+    "nodemon": "^3.1.9",
+    "uuid": "^11.1.0",
     "ws": "^8.18.1"
   }
 }
