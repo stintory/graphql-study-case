@@ -13,11 +13,16 @@ import userResolver from './resolvers/user-resolver.js';
 import searchResolver from './resolvers/search-resolver.js';
 import productResolver from './resolvers/product-resolver.js';
 import cartResolver from './resolvers/cart-resolver.js';
+// prisma 추가
+import { PrismaClient } from '@prisma/client';
+
 
 const pubsub = new PubSub();
 
 const app = express();
 const port = 8082;
+
+const prisma = new PrismaClient();
 
 const schemaFiles = [
     './schema/query.graphql',
@@ -36,44 +41,67 @@ const resolvers = mergeResolvers([
 ]);
 
 async function startServer() {
-    const schemas = await Promise.all(
+    try {
+      const typeDefs = await Promise.all(
         schemaFiles.map(file => fs.readFile(file, 'utf-8'))
-    );
-
-    const schema = makeExecutableSchema({ typeDefs: schemas, resolvers });
-
-    const server = new ApolloServer({
+      );
+  
+      const schema = makeExecutableSchema({ typeDefs, resolvers });
+  
+      const apolloServer = new ApolloServer({
         schema,
-        context: async () => ({
+      });
+  
+      await apolloServer.start();
+  
+      app.use(cors());
+      app.use(bodyParser.json());
+  
+      app.use(
+        '/graphql',
+        expressMiddleware(apolloServer, {
+          context: async () => ({
             pubsub,
-        }),
-    });
-    await server.start();
-
-    app.use(cors());
-    app.use(bodyParser.json());
-    app.use('/graphql', expressMiddleware(server, {
-        context: async () => ({ pubsub})
-    }));
-
-    const httpServer = app.listen(port, () => {
+            prisma,
+          }),
+        })
+      );
+  
+      const httpServer = app.listen(port, () => {
         console.log(`🚀 Server ready at http://localhost:${port}/graphql`);
-    });
-
-    const wsServer = new WebSocketServer({
+      });
+  
+      const wsServer = new WebSocketServer({
         server: httpServer,
-        path: '/graphql'
-    });
-
-    useServer(
+        path: '/graphql',
+      });
+  
+      useServer(
         {
-            schema,
-            context: async () => ({
-                pubsub,
-            }),
+          schema,
+          context: async () => ({
+            pubsub,
+            prisma,
+          }),
         },
         wsServer
-    );
-}
+      );
+  
+      // 종료 처리 핸들링
+      process.on('SIGINT', async () => {
+        console.log('\n🧹 Gracefully shutting down...');
+        await prisma.$disconnect();
+        wsServer.close();
+        httpServer.close(() => {
+          console.log('🛑 Server closed');
+          process.exit(0);
+        });
+      });
+    } catch (err) {
+      console.error('❌ Failed to start server:', err);
+      await prisma.$disconnect();
+      process.exit(1);
+    }
+  }
 
 startServer()
